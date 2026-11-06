@@ -1,4 +1,4 @@
-module github.com/IamPekka058/branchMatchRegex
+module github.com/michisec/branchMatchRegex
 
 go 1.25
 

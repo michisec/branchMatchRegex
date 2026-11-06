@@ -138,7 +138,7 @@ jobs:
 
       - name: Test with URL
         env:
-          INPUT_PATH: "https://raw.githubusercontent.com/IamPekka058/branchMatchRegex/main/assets/default-patterns.yml"
+          INPUT_PATH: "https://raw.githubusercontent.com/michisec/branchMatchRegex/main/assets/default-patterns.yml"
         run: |
           docker run --rm \
             -v "$GITHUB_WORKSPACE:/github/workspace" \

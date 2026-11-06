@@ -7,7 +7,7 @@ import (
 
 	githubactions "github.com/sethvargo/go-githubactions"
 
-	"github.com/IamPekka058/branchMatchRegex/internal/patterns"
+	"github.com/michisec/branchMatchRegex/internal/patterns"
 )
 
 type Inputs struct {

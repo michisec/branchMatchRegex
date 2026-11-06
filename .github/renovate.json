@@ -3,5 +3,5 @@
   "extends": [
     "github>RubberDuckCrew/.github//configs/renovate/renovate-rubberduckcrew.json#v2.1.1"
   ],
-  "reviewers": ["IamPekka058"]
+  "reviewers": ["michisec"]
 }

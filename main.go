@@ -5,7 +5,7 @@ import (
 
 	githubactions "github.com/sethvargo/go-githubactions"
 
-	"github.com/IamPekka058/branchMatchRegex/internal/runner"
+	"github.com/michisec/branchMatchRegex/internal/runner"
 )
 
 //go:embed assets/default-patterns.yml

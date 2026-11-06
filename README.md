@@ -1,8 +1,8 @@
 # branchMatchRegex
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/IamPekka058/branchMatchRegex)
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/IamPekka058/branchMatchRegex/.github/workflows/test-workflow.yml)
-![GitHub](https://img.shields.io/github/license/IamPekka058/branchMatchRegex)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/michisec/branchMatchRegex)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/michisec/branchMatchRegex/.github/workflows/test-workflow.yml)
+![GitHub](https://img.shields.io/github/license/michisec/branchMatchRegex)
 
 > **What's new in v2?**
 >
@@ -67,7 +67,7 @@ patterns: |
 
 ```yaml
 - name: Run branchMatchRegex action
-  uses: IamPekka058/branchMatchRegex@v2.0.0
+  uses: michisec/branchMatchRegex@v2.0.0
   with:
     patterns: "feature/.*"
 ```
@@ -76,7 +76,7 @@ patterns: |
 
 ```yaml
 - name: Run branchMatchRegex action
-  uses: IamPekka058/branchMatchRegex@v2.0.0
+  uses: michisec/branchMatchRegex@v2.0.0
   with:
     patterns: |
       feature/.*
@@ -88,7 +88,7 @@ patterns: |
 
 ```yaml
 - name: Run branchMatchRegex action
-  uses: IamPekka058/branchMatchRegex@v2.0.0
+  uses: michisec/branchMatchRegex@v2.0.0
   with:
     path: "branch-patterns.yml"
 ```
@@ -105,7 +105,7 @@ The file `branch-patterns.yml` could look like this:
 
 ```yaml
 - name: Run branchMatchRegex action
-  uses: IamPekka058/branchMatchRegex@v2.0.0
+  uses: michisec/branchMatchRegex@v2.0.0
   with:
     useDefaultPatterns: true
 ```
@@ -114,7 +114,7 @@ The file `branch-patterns.yml` could look like this:
 
 ```yaml
 - name: Run branchMatchRegex action
-  uses: IamPekka058/branchMatchRegex@v2.0.0
+  uses: michisec/branchMatchRegex@v2.0.0
   with:
     patterns: |
       feature/.*
@@ -127,7 +127,7 @@ The file `branch-patterns.yml` could look like this:
 
 ```yaml
 - name: Run branchMatchRegex action
-  uses: IamPekka058/branchMatchRegex@v2.0.0
+  uses: michisec/branchMatchRegex@v2.0.0
   with:
     patterns: |
       feature/*
@@ -139,7 +139,7 @@ The file `branch-patterns.yml` could look like this:
 
 ```yaml
 - name: Run branchMatchRegex action
-  uses: IamPekka058/branchMatchRegex@v2.0.0
+  uses: michisec/branchMatchRegex@v2.0.0
   with:
     path: "https://example.com/patterns.yml"
 ```

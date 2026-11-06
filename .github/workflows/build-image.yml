@@ -5,7 +5,9 @@ on:
     branches:
       - main
   release:
-    types: [created]
+    # Draft releases do not trigger the "created" activity type, so build the
+    # versioned image when the release is published.
+    types: [published]
   workflow_dispatch:
 
 permissions:

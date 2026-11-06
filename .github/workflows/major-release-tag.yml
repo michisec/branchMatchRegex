@@ -2,7 +2,9 @@ name: Update Major Release Tag
 
 on:
   release:
-    types: [created]
+    # Draft releases do not trigger the "created" activity type, so move the
+    # major tag when the release is published.
+    types: [published]
 
 permissions:
   contents: write

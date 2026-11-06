@@ -1,6 +1,6 @@
 module github.com/michisec/branchMatchRegex
 
-go 1.25
+go 1.27.3
 
 require (
 	github.com/sethvargo/go-githubactions v1.4.0

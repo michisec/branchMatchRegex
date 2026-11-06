@@ -4,6 +4,15 @@
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/michisec/branchMatchRegex/.github/workflows/test-workflow.yml)
 ![GitHub](https://img.shields.io/github/license/michisec/branchMatchRegex)
 
+> **What's new in v3?**
+>
+> - Rewritten in Go and evaluated with the RE2 engine. Lookarounds and
+>   backreferences are not supported.
+> - Runs from an exact version of the container image published to the GitHub
+>   Container Registry, so it requires a Linux runner.
+> - All tags are immutable. Pin an exact release such as `@v3.0.0`; there is no
+>   moving `v3` alias and no `latest` tag.
+
 > **What's new in v2?**
 >
 > - All pattern sources (`patterns`, `useDefaultPatterns`, `path`) are now
@@ -23,7 +32,7 @@ useful for enforcing branch naming conventions in your repositories.
 
 > **Note:** The action runs from a prebuilt container image published to the
 > GitHub Container Registry, so it requires a Linux runner. The image is pulled
-> automatically and matches the action's major version.
+> automatically and matches the exact version tag you use for the action.
 
 > If you use `useDefaultPatterns: true`, see
 > [DEFAULT_PATTERNS.md](./DEFAULT_PATTERNS.md) for a detailed explanation of the
@@ -67,7 +76,7 @@ patterns: |
 
 ```yaml
 - name: Run branchMatchRegex action
-  uses: michisec/branchMatchRegex@v2.0.0
+  uses: michisec/branchMatchRegex@v3.0.0
   with:
     patterns: "feature/.*"
 ```
@@ -76,7 +85,7 @@ patterns: |
 
 ```yaml
 - name: Run branchMatchRegex action
-  uses: michisec/branchMatchRegex@v2.0.0
+  uses: michisec/branchMatchRegex@v3.0.0
   with:
     patterns: |
       feature/.*
@@ -88,7 +97,7 @@ patterns: |
 
 ```yaml
 - name: Run branchMatchRegex action
-  uses: michisec/branchMatchRegex@v2.0.0
+  uses: michisec/branchMatchRegex@v3.0.0
   with:
     path: "branch-patterns.yml"
 ```
@@ -105,7 +114,7 @@ The file `branch-patterns.yml` could look like this:
 
 ```yaml
 - name: Run branchMatchRegex action
-  uses: michisec/branchMatchRegex@v2.0.0
+  uses: michisec/branchMatchRegex@v3.0.0
   with:
     useDefaultPatterns: true
 ```
@@ -114,7 +123,7 @@ The file `branch-patterns.yml` could look like this:
 
 ```yaml
 - name: Run branchMatchRegex action
-  uses: michisec/branchMatchRegex@v2.0.0
+  uses: michisec/branchMatchRegex@v3.0.0
   with:
     patterns: |
       feature/.*
@@ -127,7 +136,7 @@ The file `branch-patterns.yml` could look like this:
 
 ```yaml
 - name: Run branchMatchRegex action
-  uses: michisec/branchMatchRegex@v2.0.0
+  uses: michisec/branchMatchRegex@v3.0.0
   with:
     patterns: |
       feature/*
@@ -139,7 +148,7 @@ The file `branch-patterns.yml` could look like this:
 
 ```yaml
 - name: Run branchMatchRegex action
-  uses: michisec/branchMatchRegex@v2.0.0
+  uses: michisec/branchMatchRegex@v3.0.0
   with:
     path: "https://example.com/patterns.yml"
 ```

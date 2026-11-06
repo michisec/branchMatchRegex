@@ -57,7 +57,7 @@ func Run(action *githubactions.Action, defaultPatterns []byte) error {
 	}
 
 	if inputs.FailOnUnmatched {
-		return fmt.Errorf("Branch '%s' does not match any patterns", inputs.Branch)
+		return fmt.Errorf("branch '%s' does not match any patterns", inputs.Branch)
 	}
 
 	action.Warningf("Branch '%s' does not match any patterns", inputs.Branch)
@@ -72,7 +72,7 @@ func Collect(inputs Inputs, defaultPatterns []byte) ([]string, error) {
 	if inputs.UseDefaultPatterns {
 		defaults, err := patterns.Parse(defaultPatterns, inputs.UseWildcardPatterns)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to get default patterns: %w", err)
+			return nil, fmt.Errorf("failed to get default patterns: %w", err)
 		}
 		allPatterns = append(allPatterns, defaults...)
 	}

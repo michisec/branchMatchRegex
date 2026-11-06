@@ -48,9 +48,9 @@ func Load(path string, useWildcard bool) ([]string, error) {
 	parsed, err := Parse(content, useWildcard)
 	if err != nil {
 		if isURL {
-			return nil, fmt.Errorf("Failed to parse patterns from URL: %w", err)
+			return nil, fmt.Errorf("failed to parse patterns from URL: %w", err)
 		}
-		return nil, fmt.Errorf("Failed to get patterns from file: %w", err)
+		return nil, fmt.Errorf("failed to get patterns from file: %w", err)
 	}
 	return parsed, nil
 }
@@ -76,24 +76,24 @@ func read(path string) ([]byte, bool, error) {
 	if urlPattern.MatchString(path) {
 		resp, err := http.Get(path)
 		if err != nil {
-			return nil, true, fmt.Errorf("Failed to fetch patterns from URL: %w", err)
+			return nil, true, fmt.Errorf("failed to fetch patterns from URL: %w", err)
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-			return nil, true, fmt.Errorf("Failed to fetch patterns from URL: %s", resp.Status)
+			return nil, true, fmt.Errorf("failed to fetch patterns from URL: %s", resp.Status)
 		}
 
 		content, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return nil, true, fmt.Errorf("Failed to fetch patterns from URL: %w", err)
+			return nil, true, fmt.Errorf("failed to fetch patterns from URL: %w", err)
 		}
 		return content, true, nil
 	}
 
 	content, err := os.ReadFile(path)
 	if err != nil {
-		return nil, false, fmt.Errorf("Failed to get patterns from file: %w", err)
+		return nil, false, fmt.Errorf("failed to get patterns from file: %w", err)
 	}
 	return content, false, nil
 }

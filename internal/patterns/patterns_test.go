@@ -158,6 +158,47 @@ func TestLoad(t *testing.T) {
 		}
 	})
 
+	t.Run("returns an error when the URL cannot be reached", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write([]byte("- feature/.*\n"))
+		}))
+		url := server.URL
+		server.Close()
+
+		if _, err := Load(url, false); err == nil {
+			t.Fatal("expected an error, got nil")
+		}
+	})
+
+	t.Run("returns an error for invalid YAML from a URL", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write([]byte("patterns:\n  - feature/.*\n"))
+		}))
+		defer server.Close()
+
+		if _, err := Load(server.URL, false); err == nil {
+			t.Fatal("expected an error, got nil")
+		}
+	})
+
+	t.Run("returns an error when the URL response is truncated", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Length", "1024")
+			_, _ = w.Write([]byte("- feature/.*\n"))
+		}))
+		defer server.Close()
+
+		if _, err := Load(server.URL, false); err == nil {
+			t.Fatal("expected an error, got nil")
+		}
+	})
+
+	t.Run("returns an error for invalid YAML in a file", func(t *testing.T) {
+		if _, err := Load(writeFile(t, "patterns:\n  - feature/.*\n"), false); err == nil {
+			t.Fatal("expected an error, got nil")
+		}
+	})
+
 	t.Run("returns an error when the file cannot be read", func(t *testing.T) {
 		if _, err := Load(filepath.Join(t.TempDir(), "missing.yml"), false); err == nil {
 			t.Fatal("expected an error, got nil")

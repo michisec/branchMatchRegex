@@ -182,7 +182,7 @@ func TestRun(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected an error, got nil")
 		}
-		if want := "Branch 'feature/test' does not match any patterns"; !strings.Contains(err.Error(), want) {
+		if want := "branch 'feature/test' does not match any patterns"; !strings.Contains(err.Error(), want) {
 			t.Errorf("error does not contain %q: %v", want, err)
 		}
 	})
@@ -263,7 +263,7 @@ func TestRun(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected an error, got nil")
 		}
-		if want := "Failed to get patterns from file"; !strings.Contains(err.Error(), want) {
+		if want := "failed to get patterns from file"; !strings.Contains(err.Error(), want) {
 			t.Errorf("error does not contain %q: %v", want, err)
 		}
 	})

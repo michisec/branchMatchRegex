@@ -1,8 +1,7 @@
 # branchMatchRegex
 
-![Coverage](./badges/coverage.svg)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/IamPekka058/branchMatchRegex)
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/IamPekka058/branchMatchRegex/.github/workflows/build-and-commit.yml)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/IamPekka058/branchMatchRegex/.github/workflows/test-workflow.yml)
 ![GitHub](https://img.shields.io/github/license/IamPekka058/branchMatchRegex)
 
 > **What's new in v2?**
@@ -13,14 +12,14 @@
 >   `useWildcardPatterns` instead of `useWildcard`.
 > - You can now combine inline patterns, default patterns, and file/URL patterns
 >   in any combination.
-> - The project is now based on TypeScript instead of plain JavaScript for
->   improved type safety and maintainability.
-> - Tests have been added (see the `__tests__` directory) to ensure reliability
->   and robustness.
 
 `branchMatchRegex` is a GitHub Action that checks if the current branch name
 matches one or more specified patterns (regex or wildcard). This is especially
 useful for enforcing branch naming conventions in your repositories.
+
+> **Note:** The action is implemented in Go and evaluates patterns with the RE2
+> engine. Lookarounds and backreferences are not supported; such patterns fail
+> the action with an explicit error.
 
 > If you use `useDefaultPatterns: true`, see
 > [DEFAULT_PATTERNS.md](./DEFAULT_PATTERNS.md) for a detailed explanation of the
@@ -139,6 +138,19 @@ The file `branch-patterns.yml` could look like this:
   uses: IamPekka058/branchMatchRegex@v2.0.0
   with:
     path: "https://example.com/patterns.yml"
+```
+
+## Development
+
+```bash
+# Run the tests
+go test ./internal/...
+
+# Build the binary
+go build -o branchmatchregex .
+
+# Build the container image
+docker build -t branchmatchregex .
 ```
 
 ## License

@@ -7,6 +7,15 @@ on:
 permissions:
   contents: read
 
+env:
+  IMAGE: branchmatchregex:test
+  INPUT_BRANCH: "feature/test"
+  INPUT_PATTERNS: ""
+  INPUT_PATH: ""
+  INPUT_FAILONUNMATCHEDPATTERN: "true"
+  INPUT_USEWILDCARDPATTERNS: "false"
+  INPUT_USEDEFAULTPATTERNS: "false"
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -14,15 +23,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
+      - name: Build image
+        run: docker build -t "$IMAGE" .
+
       - name: Test with single pattern
-        uses: ./
-        with:
-          patterns: ".*"
+        env:
+          INPUT_PATTERNS: ".*"
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/github/workspace" \
+            -w /github/workspace \
+            -e INPUT_PATTERNS \
+            -e INPUT_PATH \
+            -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_USEWILDCARDPATTERNS \
+            -e INPUT_USEDEFAULTPATTERNS \
+            -e INPUT_BRANCH \
+            "$IMAGE"
 
       - name: Test with list
-        uses: ./
-        with:
-          patterns: |
+        env:
+          INPUT_PATTERNS: |
             - feature/*
             - fix/*
             - hotfix/*
@@ -39,31 +60,93 @@ jobs:
             - test/*
             - renovate/*
             - dependabot/*
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/github/workspace" \
+            -w /github/workspace \
+            -e INPUT_PATTERNS \
+            -e INPUT_PATH \
+            -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_USEWILDCARDPATTERNS \
+            -e INPUT_USEDEFAULTPATTERNS \
+            -e INPUT_BRANCH \
+            "$IMAGE"
 
       - name: Test with inline list
-        uses: ./
-        with:
-          patterns: "['feature/*', 'fix/*', 'hotfix/*', 'docs/*', 'test/*',
+        env:
+          INPUT_PATTERNS: >-
+            ['feature/*', 'fix/*', 'hotfix/*', 'docs/*', 'test/*',
             'refactor/*', 'style/*', 'ci/*', 'perf/*', 'i18n/*', 'security/*',
-            'release/*', 'chore/*', 'test/*', 'renovate/*, dependabot/*']"
+            'release/*', 'chore/*', 'test/*', 'renovate/*, dependabot/*']
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/github/workspace" \
+            -w /github/workspace \
+            -e INPUT_PATTERNS \
+            -e INPUT_PATH \
+            -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_USEWILDCARDPATTERNS \
+            -e INPUT_USEDEFAULTPATTERNS \
+            -e INPUT_BRANCH \
+            "$IMAGE"
 
       - name: Test with file
-        uses: ./
-        with:
-          path: .github/branches.yml
+        env:
+          INPUT_PATH: .github/branches.yml
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/github/workspace" \
+            -w /github/workspace \
+            -e INPUT_PATTERNS \
+            -e INPUT_PATH \
+            -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_USEWILDCARDPATTERNS \
+            -e INPUT_USEDEFAULTPATTERNS \
+            -e INPUT_BRANCH \
+            "$IMAGE"
 
-      - name: Test with file
-        uses: ./
-        with:
-          useDefaultPatterns: true
+      - name: Test with default patterns
+        env:
+          INPUT_USEDEFAULTPATTERNS: "true"
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/github/workspace" \
+            -w /github/workspace \
+            -e INPUT_PATTERNS \
+            -e INPUT_PATH \
+            -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_USEWILDCARDPATTERNS \
+            -e INPUT_USEDEFAULTPATTERNS \
+            -e INPUT_BRANCH \
+            "$IMAGE"
 
-      - name: Test with file and branch name
-        uses: ./
-        with:
-          useDefaultPatterns: true
-          branch: "feature/test"
+      - name: Test with default patterns and explicit branch
+        env:
+          INPUT_USEDEFAULTPATTERNS: "true"
+          INPUT_BRANCH: "fix/123"
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/github/workspace" \
+            -w /github/workspace \
+            -e INPUT_PATTERNS \
+            -e INPUT_PATH \
+            -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_USEWILDCARDPATTERNS \
+            -e INPUT_USEDEFAULTPATTERNS \
+            -e INPUT_BRANCH \
+            "$IMAGE"
 
       - name: Test with URL
-        uses: ./
-        with:
-          path: "https://raw.githubusercontent.com/IamPekka058/branchMatchRegex/main/assets/default-patterns.yml"
+        env:
+          INPUT_PATH: "https://raw.githubusercontent.com/IamPekka058/branchMatchRegex/main/assets/default-patterns.yml"
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/github/workspace" \
+            -w /github/workspace \
+            -e INPUT_PATTERNS \
+            -e INPUT_PATH \
+            -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_USEWILDCARDPATTERNS \
+            -e INPUT_USEDEFAULTPATTERNS \
+            -e INPUT_BRANCH \
+            "$IMAGE"

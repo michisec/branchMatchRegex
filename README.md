@@ -21,6 +21,10 @@ useful for enforcing branch naming conventions in your repositories.
 > engine. Lookarounds and backreferences are not supported; such patterns fail
 > the action with an explicit error.
 
+> **Note:** The action runs from a prebuilt container image published to the
+> GitHub Container Registry, so it requires a Linux runner. The image is pulled
+> automatically and matches the action's major version.
+
 > If you use `useDefaultPatterns: true`, see
 > [DEFAULT_PATTERNS.md](./DEFAULT_PATTERNS.md) for a detailed explanation of the
 > default branch patterns.

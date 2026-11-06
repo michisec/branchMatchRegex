@@ -12,6 +12,7 @@ RUN go mod download
 
 COPY main.go ./
 COPY assets ./assets
+COPY internal ./internal
 
 RUN go build -trimpath -ldflags="-s -w" -o /out/branchmatchregex .
 

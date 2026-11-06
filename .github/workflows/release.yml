@@ -47,37 +47,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Npm setup
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: 24.14.1
-          cache: "npm"
-
-      - name: Update package.json version
-        run: npm version "$VERSION" --no-git-tag-version
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Lint code
-        run: npm run lint
-
       - name: Run tests
-        run: npm test
+        run: go test ./internal/...
 
-      - name: Build action
-        run: npm run package
+      - name: Vet
+        run: go vet ./...
 
-      - name: Commit changes
-        uses: suzuki-shunsuke/commit-action@f12e2d628a4ab72dcefe7890ae07e8dbf1e201b9 # v0.1.1
-        with:
-          commit_message: "🔖 Release v${{ env.VERSION }} [skip ci]"
-          files: |
-            dist/
-            package.json
-            package-lock.json
-          github_token: ${{ steps.app-token.outputs.token || github.token }}
-          fail_on_self_push: false
+      - name: Build
+        run: go build -o branchmatchregex .
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
@@ -86,3 +63,4 @@ jobs:
           name: "🔖 branchMatchRegex ${{ env.VERSION }}"
           draft: true
           prerelease: false
+          token: ${{ steps.app-token.outputs.token || github.token }}

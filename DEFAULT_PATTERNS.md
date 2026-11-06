@@ -48,6 +48,6 @@ patterns:
 | `i18n/`       | 🌍      | Internationalization, translations               | `i18n/add-french-language`             |
 | `security/`   | 🔒️      | Security-related changes                         | `security/fix-token-leak`              |
 | `release/`    | 📦      | Release preparation or management                | `release/v2.1.0`                       |
-| `chore/`      | 🛠️      | Maintenance, dependencies, tooling               | `chore/update-eslint`                  |
-| `dependabot/` | 🤖      | Automated dependency updates (Dependabot)        | `dependabot/npm_and_yarn/axios-0.21.1` |
+| `chore/`      | 🛠️      | Maintenance, dependencies, tooling               | `chore/update-go-deps`                 |
+| `dependabot/` | 🤖      | Automated dependency updates (Dependabot)        | `dependabot/go_modules/golang.org/x/net` |
 | `renovate/`   | 🤖      | Automated dependency updates (Renovate Bot)      | `renovate/update-packages`             |

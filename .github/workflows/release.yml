@@ -20,8 +20,8 @@ jobs:
     steps:
       - name: Validate version input
         run: |
-          if ! echo "$VERSION" | grep -E -x '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$' >/dev/null; then
-            echo "ERROR: VERSION is not a valid semver: '$VERSION'"
+          if ! echo "$VERSION" | grep -E -x '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' >/dev/null; then
+            echo "ERROR: VERSION must be a valid semver without build metadata: '$VERSION'"
             exit 1
           fi
 
@@ -46,38 +46,51 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token || github.token }}
 
-      - name: Npm setup
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
-          node-version: 24.14.1
-          cache: "npm"
+          go-version-file: go.mod
+          cache: true
 
-      - name: Update package.json version
-        run: npm version "$VERSION" --no-git-tag-version
+      - name: Check formatting
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::The following files are not gofmt-formatted:"
+            echo "$unformatted"
+            exit 1
+          fi
 
-      - name: Install dependencies
-        run: npm install
+      - name: Vet
+        run: go vet ./...
 
-      - name: Lint code
-        run: npm run lint
+      - name: Lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.9.0
+          args: --timeout=5m
 
       - name: Run tests
-        run: npm test
+        run: go test ./... -race -cover
 
-      - name: Build action
-        run: npm run package
+      - name: Build
+        run: go build -o branchmatchregex .
 
-      - name: Commit changes
-        uses: suzuki-shunsuke/commit-action@f12e2d628a4ab72dcefe7890ae07e8dbf1e201b9 # v0.1.1
-        with:
-          commit_message: "🔖 Release v${{ env.VERSION }} [skip ci]"
-          files: |
-            dist/
-            package.json
-            package-lock.json
-          github_token: ${{ steps.app-token.outputs.token || github.token }}
-          fail_on_self_push: false
+      - name: Point action at the exact release image
+        run: |
+          sed -i -E "s#^  image: .*#  image: \"docker://ghcr.io/michisec/branchmatchregex:v${VERSION}\"#" action.yml
+
+          if git diff --quiet -- action.yml; then
+            exit 0
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add action.yml
+          git commit -m "ci: use v${VERSION} action image"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
@@ -86,3 +99,4 @@ jobs:
           name: "🔖 branchMatchRegex ${{ env.VERSION }}"
           draft: true
           prerelease: false
+          token: ${{ steps.app-token.outputs.token || github.token }}

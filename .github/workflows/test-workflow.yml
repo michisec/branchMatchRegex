@@ -7,27 +7,77 @@ on:
 permissions:
   contents: read
 
+env:
+  IMAGE: branchmatchregex:test
+  INPUT_BRANCH: "feature/test"
+  INPUT_PATTERNS: ""
+  INPUT_PATH: ""
+  INPUT_FAILONUNMATCHEDPATTERN: "true"
+  INPUT_USEWILDCARDPATTERNS: "false"
+  INPUT_USEDEFAULTPATTERNS: "false"
+
 jobs:
+  checks:
+    name: Format, vet, lint, and test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Check formatting
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::The following files are not gofmt-formatted:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.9.0
+          args: --timeout=5m
+
+      - name: Test
+        run: go test ./... -race -cover
+
   test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: "24.14.1"
+      - name: Build image
+        run: docker build -t "$IMAGE" .
 
       - name: Test with single pattern
-        uses: ./
-        with:
-          patterns: ".*"
+        env:
+          INPUT_PATTERNS: ".*"
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/github/workspace" \
+            -w /github/workspace \
+            -e INPUT_PATTERNS \
+            -e INPUT_PATH \
+            -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_USEWILDCARDPATTERNS \
+            -e INPUT_USEDEFAULTPATTERNS \
+            -e INPUT_BRANCH \
+            "$IMAGE"
 
       - name: Test with list
-        uses: ./
-        with:
-          patterns: |
+        env:
+          INPUT_PATTERNS: |
             - feature/*
             - fix/*
             - hotfix/*
@@ -44,31 +94,93 @@ jobs:
             - test/*
             - renovate/*
             - dependabot/*
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/github/workspace" \
+            -w /github/workspace \
+            -e INPUT_PATTERNS \
+            -e INPUT_PATH \
+            -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_USEWILDCARDPATTERNS \
+            -e INPUT_USEDEFAULTPATTERNS \
+            -e INPUT_BRANCH \
+            "$IMAGE"
 
       - name: Test with inline list
-        uses: ./
-        with:
-          patterns: "['feature/*', 'fix/*', 'hotfix/*', 'docs/*', 'test/*',
+        env:
+          INPUT_PATTERNS: >-
+            ['feature/*', 'fix/*', 'hotfix/*', 'docs/*', 'test/*',
             'refactor/*', 'style/*', 'ci/*', 'perf/*', 'i18n/*', 'security/*',
-            'release/*', 'chore/*', 'test/*', 'renovate/*, dependabot/*']"
+            'release/*', 'chore/*', 'test/*', 'renovate/*, dependabot/*']
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/github/workspace" \
+            -w /github/workspace \
+            -e INPUT_PATTERNS \
+            -e INPUT_PATH \
+            -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_USEWILDCARDPATTERNS \
+            -e INPUT_USEDEFAULTPATTERNS \
+            -e INPUT_BRANCH \
+            "$IMAGE"
 
       - name: Test with file
-        uses: ./
-        with:
-          path: .github/branches.yml
+        env:
+          INPUT_PATH: .github/branches.yml
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/github/workspace" \
+            -w /github/workspace \
+            -e INPUT_PATTERNS \
+            -e INPUT_PATH \
+            -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_USEWILDCARDPATTERNS \
+            -e INPUT_USEDEFAULTPATTERNS \
+            -e INPUT_BRANCH \
+            "$IMAGE"
 
-      - name: Test with file
-        uses: ./
-        with:
-          useDefaultPatterns: true
+      - name: Test with default patterns
+        env:
+          INPUT_USEDEFAULTPATTERNS: "true"
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/github/workspace" \
+            -w /github/workspace \
+            -e INPUT_PATTERNS \
+            -e INPUT_PATH \
+            -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_USEWILDCARDPATTERNS \
+            -e INPUT_USEDEFAULTPATTERNS \
+            -e INPUT_BRANCH \
+            "$IMAGE"
 
-      - name: Test with file and branch name
-        uses: ./
-        with:
-          useDefaultPatterns: true
-          branch: "feature/test"
+      - name: Test with default patterns and explicit branch
+        env:
+          INPUT_USEDEFAULTPATTERNS: "true"
+          INPUT_BRANCH: "fix/123"
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/github/workspace" \
+            -w /github/workspace \
+            -e INPUT_PATTERNS \
+            -e INPUT_PATH \
+            -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_USEWILDCARDPATTERNS \
+            -e INPUT_USEDEFAULTPATTERNS \
+            -e INPUT_BRANCH \
+            "$IMAGE"
 
       - name: Test with URL
-        uses: ./
-        with:
-          path: "https://raw.githubusercontent.com/IamPekka058/branchMatchRegex/main/assets/default-patterns.yml"
+        env:
+          INPUT_PATH: "https://raw.githubusercontent.com/michisec/branchMatchRegex/main/assets/default-patterns.yml"
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/github/workspace" \
+            -w /github/workspace \
+            -e INPUT_PATTERNS \
+            -e INPUT_PATH \
+            -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_USEWILDCARDPATTERNS \
+            -e INPUT_USEDEFAULTPATTERNS \
+            -e INPUT_BRANCH \
+            "$IMAGE"

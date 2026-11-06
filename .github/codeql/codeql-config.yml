@@ -1,5 +1,1 @@
-name: JavaScript CodeQL Configuration
-
-paths-ignore:
-  - node_modules
-  - dist
+name: Go CodeQL Configuration

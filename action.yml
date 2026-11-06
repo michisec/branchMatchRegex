@@ -1,6 +1,6 @@
 name: "branchMatchRegex"
 description: "Check if the current branch matches a regex/wildcard pattern"
-author: "IamPekka058 <59747867+IamPekka058@users.noreply.github.com>"
+author: "michisec <59747867+michisec@users.noreply.github.com>"
 
 inputs:
   patterns:
@@ -29,8 +29,9 @@ inputs:
     default: ${{ github.head_ref }}
 
 runs:
-  using: "node20"
-  main: "dist/index.js"
+  using: "docker"
+  # Updated automatically by release.yml to the exact version being released.
+  image: "docker://ghcr.io/michisec/branchmatchregex:v3.0.0"
 
 branding:
   icon: "check-circle"

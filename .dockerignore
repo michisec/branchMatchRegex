@@ -1,9 +1,4 @@
 .git
 .github
-node_modules
-dist
-coverage
-badges
-__tests__
 *.exe
 *.log

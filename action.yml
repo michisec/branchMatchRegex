@@ -29,8 +29,29 @@ inputs:
     default: ${{ github.head_ref }}
 
 runs:
-  using: "node20"
-  main: "dist/index.js"
+  using: "composite"
+  steps:
+    - name: Run branchMatchRegex
+      shell: bash
+      env:
+        INPUT_PATTERNS: ${{ inputs.patterns }}
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_FAILONUNMATCHEDPATTERN: ${{ inputs.failOnUnmatchedPattern }}
+        INPUT_USEWILDCARDPATTERNS: ${{ inputs.useWildcardPatterns }}
+        INPUT_USEDEFAULTPATTERNS: ${{ inputs.useDefaultPatterns }}
+        INPUT_BRANCH: ${{ inputs.branch }}
+        CGO_ENABLED: "0"
+      run: |
+        set -euo pipefail
+
+        binary="$RUNNER_TEMP/branchmatchregex"
+        if [ "$RUNNER_OS" = "Windows" ]; then
+          binary="${binary}.exe"
+        fi
+
+        cd "$GITHUB_ACTION_PATH"
+        go build -trimpath -o "$binary" .
+        "$binary"
 
 branding:
   icon: "check-circle"

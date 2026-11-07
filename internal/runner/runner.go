@@ -65,7 +65,13 @@ func Run(action *githubactions.Action, defaultPatterns []byte) error {
 
 	if inputs.CommentOnUnmatched {
 		if err := notify.PostUnmatched(inputs.Token, inputs.Branch, allPatterns, inputs.Comment); err != nil {
-			action.Warningf("Could not post comment on pull request: %s", err)
+			message := fmt.Sprintf("Could not post comment on pull request: %s", err)
+			if notify.IsForbidden(err) {
+				message += "; the default GITHUB_TOKEN is read-only for pull requests from forks, " +
+					"so pass a write-capable token via the github-token input or post the comment from a trusted workflow " +
+					"(see README: Commenting from fork pull requests)"
+			}
+			action.Warningf("%s", message)
 		}
 	}
 

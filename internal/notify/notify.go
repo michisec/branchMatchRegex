@@ -19,7 +19,6 @@ const (
 	marker          = "<!-- branchMatchRegex:unmatched -->"
 	defaultText     = "Branch `{branch}` does not match any of the configured patterns."
 	commentsPerPage = 100
-	maxCommentPages = 10
 )
 
 var pullRequestRef = regexp.MustCompile(`^refs/pull/(\d+)/(?:merge|head)$`)
@@ -27,6 +26,26 @@ var pullRequestRef = regexp.MustCompile(`^refs/pull/(\d+)/(?:merge|head)$`)
 type comment struct {
 	ID   int64  `json:"id"`
 	Body string `json:"body"`
+}
+
+// APIError describes a non-2xx response from the GitHub API.
+type APIError struct {
+	Method     string
+	Path       string
+	StatusCode int
+	Status     string
+	Message    string
+}
+
+func (e *APIError) Error() string {
+	return fmt.Sprintf("github api %s %s returned %s: %s", e.Method, e.Path, e.Status, e.Message)
+}
+
+// IsForbidden reports whether err is a GitHub API 403 response. A read-only
+// token, such as the default token on pull requests from forks, returns 403.
+func IsForbidden(err error) bool {
+	var apiErr *APIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusForbidden
 }
 
 type event struct {
@@ -96,7 +115,10 @@ func (c *Client) UpsertPullRequestComment(ctx context.Context, number int, body 
 }
 
 func (c *Client) findComment(ctx context.Context, number int) (int64, bool, error) {
-	for page := 1; page <= maxCommentPages; page++ {
+	// Search every page so an existing comment is found even when a pull
+	// request has accumulated many comments. Stopping early would create a
+	// duplicate comment on every run.
+	for page := 1; ; page++ {
 		path := fmt.Sprintf("/repos/%s/issues/%d/comments?per_page=%d&page=%d", c.Repository, number, commentsPerPage, page)
 
 		var comments []comment
@@ -162,7 +184,13 @@ func (c *Client) do(ctx context.Context, method, path string, payload any, out a
 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 		message, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		return fmt.Errorf("github api %s %s returned %s: %s", method, path, resp.Status, strings.TrimSpace(string(message)))
+		return &APIError{
+			Method:     method,
+			Path:       path,
+			StatusCode: resp.StatusCode,
+			Status:     resp.Status,
+			Message:    strings.TrimSpace(string(message)),
+		}
 	}
 
 	if out == nil {

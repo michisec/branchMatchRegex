@@ -20,15 +20,6 @@
 >   Optionally set `commentOnUnmatchedPattern: true` to post a configurable
 >   comment on the pull request.
 
-> **What's new in v2?**
->
-> - All pattern sources (`patterns`, `useDefaultPatterns`, `path`) are now
->   combined (cumulative), not mutually exclusive.
-> - Input names have changed: use `patterns` instead of `regex`, and
->   `useWildcardPatterns` instead of `useWildcard`.
-> - You can now combine inline patterns, default patterns, and file/URL patterns
->   in any combination.
-
 `branchMatchRegex` is a GitHub Action that checks if the current branch name
 matches one or more specified patterns (regex or wildcard). This is especially
 useful for enforcing branch naming conventions in your repositories.
@@ -100,6 +91,52 @@ steps:
 Comments are only posted for pull request events. If no pull request or token is
 available, the action logs a warning and continues; the comment failure does not
 change whether the workflow fails.
+
+### Commenting from fork pull requests
+
+For pull requests from forks, the default `${{ github.token }}` on a
+`pull_request` event is read-only. The GitHub API rejects the comment with
+`403 Resource not accessible by integration`, so the action logs a warning and
+the branch check still succeeds.
+
+To post comments for fork pull requests, run the comment from a trusted,
+write-enabled context. The action only reads its inputs and calls the GitHub
+API, so it never executes code from the pull request. Common options are:
+
+- **`pull_request_target`** – runs in the base repository context with a write
+  token. Do not check out or run code from the pull request head in this
+  workflow.
+- **`workflow_run`** – run a separate workflow after the pull request workflow
+  and post the comment from there.
+- **`github-token` input** – pass a PAT or GitHub App token with
+  `pull-requests: write`, stored as a repository secret.
+
+Example using `pull_request_target`:
+
+```yaml
+on:
+  pull_request_target:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  branch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: michisec/branchMatchRegex@v3.0.0
+        with:
+          branch: ${{ github.head_ref }}
+          patterns: |
+            feature/.*
+            fix/.*
+          commentOnUnmatchedPattern: true
+```
+
+> **Security note:** `pull_request_target` has access to repository secrets and
+> a write token. Never check out or execute code from the pull request in such a
+> workflow.
 
 The comment template supports `{branch}` and `{patterns}`:
 

@@ -13,7 +13,8 @@
 > - Version tags are immutable. Pin an exact release such as `@v3.0.0`; there is
 >   no moving `v3` alias. The container image also publishes a mutable `latest`
 >   tag that tracks the most recent build, so it is not suitable for
->   reproducible pins.
+>   reproducible pins. Container image tags omit the `v` prefix (for example
+>   `3.0.0`), matching the image referenced by `action.yml`.
 > - **Behavior change:** unmatched branches no longer fail the workflow by
 >   default. Set `failOnUnmatchedPattern: true` to keep the v2 behavior.
 >   Optionally set `commentOnUnmatchedPattern: true` to post a configurable

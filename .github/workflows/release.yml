@@ -80,7 +80,7 @@ jobs:
 
       - name: Point action at the exact release image
         run: |
-          sed -i -E "s#^  image: .*#  image: \"docker://ghcr.io/michisec/branchmatchregex:v${VERSION}\"#" action.yml
+          sed -i -E "s#^  image: .*#  image: \"docker://ghcr.io/michisec/branchmatchregex:${VERSION}\"#" action.yml
 
           if git diff --quiet -- action.yml; then
             exit 0

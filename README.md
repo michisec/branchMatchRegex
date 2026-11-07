@@ -10,8 +10,9 @@
 >   backreferences are not supported.
 > - Runs from an exact version of the container image published to the GitHub
 >   Container Registry, so it requires a Linux runner.
-> - All tags are immutable. Pin an exact release such as `@v3.0.0`; there is no
->   moving `v3` alias and no `latest` tag.
+> - Release tags are immutable. Pin an exact release such as `@v3.0.0`; there is
+>   no moving `v3` alias. The container image also publishes a `latest` tag that
+>   points at the most recently built image.
 
 > **What's new in v2?**
 >

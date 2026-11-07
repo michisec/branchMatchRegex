@@ -16,9 +16,9 @@ inputs:
     required: false
     default: "false"
   commentOnUnmatchedPattern:
-    description: "Post a comment on the pull request if the branch does not match the pattern"
+    description: "Post a comment on the pull request if the branch does not match the pattern. Set to false to disable."
     required: false
-    default: "false"
+    default: "true"
   comment:
     description: "Comment template used when the branch does not match. Supports {branch} and {patterns}. Empty uses the default text."
     required: false

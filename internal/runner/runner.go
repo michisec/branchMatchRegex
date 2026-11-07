@@ -24,13 +24,14 @@ type Inputs struct {
 }
 
 func ReadInputs(action *githubactions.Action) Inputs {
+	// Commenting is enabled by default; only an explicit "false" disables it.
 	return Inputs{
 		Patterns:            action.GetInput("patterns"),
 		Path:                action.GetInput("path"),
 		Branch:              action.GetInput("branch"),
 		Token:               action.GetInput("github-token"),
 		FailOnUnmatched:     action.GetInput("failOnUnmatchedPattern") == "true",
-		CommentOnUnmatched:  action.GetInput("commentOnUnmatchedPattern") == "true",
+		CommentOnUnmatched:  action.GetInput("commentOnUnmatchedPattern") != "false",
 		Comment:             action.GetInput("comment"),
 		UseWildcardPatterns: action.GetInput("useWildcardPatterns") == "true",
 		UseDefaultPatterns:  action.GetInput("useDefaultPatterns") == "true",

@@ -17,8 +17,8 @@
 >   `3.0.0`), matching the image referenced by `action.yml`.
 > - **Behavior change:** unmatched branches no longer fail the workflow by
 >   default. Set `failOnUnmatchedPattern: true` to keep the v2 behavior.
->   Optionally set `commentOnUnmatchedPattern: true` to post a configurable
->   comment on the pull request.
+>   A configurable comment is posted on the pull request by default; set
+>   `commentOnUnmatchedPattern: false` to disable it.
 
 `branchMatchRegex` is a GitHub Action that checks if the current branch name
 matches one or more specified patterns (regex or wildcard). This is especially
@@ -44,7 +44,7 @@ useful for enforcing branch naming conventions in your repositories.
 | `path`                      | Path or URL to a file containing patterns (one per line).                                      | No       | ""                       |
 | `useDefaultPatterns`        | Additionally use default patterns. See [DEFAULT_PATTERNS.md](./DEFAULT_PATTERNS.md).           | No       | false                    |
 | `failOnUnmatchedPattern`    | Fail the action if the branch does not match any pattern.                                      | No       | false                    |
-| `commentOnUnmatchedPattern` | Post or update a pull request comment if the branch does not match any pattern.                | No       | false                    |
+| `commentOnUnmatchedPattern` | Post or update a pull request comment if the branch does not match any pattern.                | No       | true                     |
 | `comment`                   | Comment template. Supports `{branch}` and `{patterns}`. Empty uses the default text.           | No       | ""                       |
 | `github-token`              | Token used to post the comment.                                                                | No       | `${{ github.token }}`    |
 | `useWildcardPatterns`       | Treat patterns as wildcards (e.g. `feature/*`) instead of regex.                               | No       | false                    |
@@ -57,22 +57,20 @@ file/URL. You can use any combination of sources at the same time.
 ### Unmatched branches
 
 By default, a branch that does not match any pattern does **not** fail the
-workflow. The action logs a warning and continues without posting a comment.
-Commenting is opt-in: set `commentOnUnmatchedPattern: true` to post or update a
-comment on the pull request.
+workflow. The action logs a warning and posts (or updates) a comment on the pull
+request. Set `commentOnUnmatchedPattern: false` to disable the comment.
 
 `failOnUnmatchedPattern` and `commentOnUnmatchedPattern` are independent:
 
 | `failOnUnmatchedPattern` | `commentOnUnmatchedPattern` | Result                                            |
 | ------------------------ | --------------------------- | ------------------------------------------------- |
-| `false` (default)        | `false` (default)           | Workflow succeeds with a warning.                 |
-| `false`                  | `true`                      | Comment is posted or updated; workflow succeeds.  |
+| `false` (default)        | `true` (default)            | Comment is posted or updated; workflow succeeds.  |
+| `false`                  | `false`                     | Workflow succeeds with a warning.                 |
+| `true`                   | `true` (default)            | Comment is posted or updated; workflow fails.     |
 | `true`                   | `false`                     | Workflow fails.                                   |
-| `true`                   | `true`                      | Comment is posted or updated; workflow fails.     |
 
-To post comments, enable `commentOnUnmatchedPattern` and grant
-`pull-requests: write`. The `github-token` input defaults to
-`${{ github.token }}`, so no additional token configuration is required:
+To post comments, grant `pull-requests: write`. The `github-token` input defaults
+to `${{ github.token }}`, so no additional token configuration is required:
 
 ```yaml
 permissions:
@@ -85,7 +83,6 @@ steps:
       patterns: |
         feature/.*
         fix/.*
-      commentOnUnmatchedPattern: true
 ```
 
 Comments are only posted for pull request events. If no pull request or token is
@@ -131,7 +128,6 @@ jobs:
           patterns: |
             feature/.*
             fix/.*
-          commentOnUnmatchedPattern: true
 ```
 
 > **Security note:** `pull_request_target` has access to repository secrets and

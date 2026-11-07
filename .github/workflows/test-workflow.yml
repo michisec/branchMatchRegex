@@ -12,7 +12,9 @@ env:
   INPUT_BRANCH: "feature/test"
   INPUT_PATTERNS: ""
   INPUT_PATH: ""
-  INPUT_FAILONUNMATCHEDPATTERN: "true"
+  INPUT_FAILONUNMATCHEDPATTERN: "false"
+  INPUT_COMMENTONUNMATCHEDPATTERN: "false"
+  INPUT_COMMENT: ""
   INPUT_USEWILDCARDPATTERNS: "false"
   INPUT_USEDEFAULTPATTERNS: "false"
 
@@ -70,6 +72,8 @@ jobs:
             -e INPUT_PATTERNS \
             -e INPUT_PATH \
             -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_COMMENTONUNMATCHEDPATTERN \
+            -e INPUT_COMMENT \
             -e INPUT_USEWILDCARDPATTERNS \
             -e INPUT_USEDEFAULTPATTERNS \
             -e INPUT_BRANCH \
@@ -101,6 +105,8 @@ jobs:
             -e INPUT_PATTERNS \
             -e INPUT_PATH \
             -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_COMMENTONUNMATCHEDPATTERN \
+            -e INPUT_COMMENT \
             -e INPUT_USEWILDCARDPATTERNS \
             -e INPUT_USEDEFAULTPATTERNS \
             -e INPUT_BRANCH \
@@ -119,6 +125,8 @@ jobs:
             -e INPUT_PATTERNS \
             -e INPUT_PATH \
             -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_COMMENTONUNMATCHEDPATTERN \
+            -e INPUT_COMMENT \
             -e INPUT_USEWILDCARDPATTERNS \
             -e INPUT_USEDEFAULTPATTERNS \
             -e INPUT_BRANCH \
@@ -134,6 +142,8 @@ jobs:
             -e INPUT_PATTERNS \
             -e INPUT_PATH \
             -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_COMMENTONUNMATCHEDPATTERN \
+            -e INPUT_COMMENT \
             -e INPUT_USEWILDCARDPATTERNS \
             -e INPUT_USEDEFAULTPATTERNS \
             -e INPUT_BRANCH \
@@ -149,6 +159,8 @@ jobs:
             -e INPUT_PATTERNS \
             -e INPUT_PATH \
             -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_COMMENTONUNMATCHEDPATTERN \
+            -e INPUT_COMMENT \
             -e INPUT_USEWILDCARDPATTERNS \
             -e INPUT_USEDEFAULTPATTERNS \
             -e INPUT_BRANCH \
@@ -165,6 +177,8 @@ jobs:
             -e INPUT_PATTERNS \
             -e INPUT_PATH \
             -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_COMMENTONUNMATCHEDPATTERN \
+            -e INPUT_COMMENT \
             -e INPUT_USEWILDCARDPATTERNS \
             -e INPUT_USEDEFAULTPATTERNS \
             -e INPUT_BRANCH \
@@ -180,7 +194,48 @@ jobs:
             -e INPUT_PATTERNS \
             -e INPUT_PATH \
             -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_COMMENTONUNMATCHEDPATTERN \
+            -e INPUT_COMMENT \
             -e INPUT_USEWILDCARDPATTERNS \
             -e INPUT_USEDEFAULTPATTERNS \
             -e INPUT_BRANCH \
             "$IMAGE"
+
+      - name: Test unmatched pattern does not fail
+        env:
+          INPUT_PATTERNS: "never/.*"
+          INPUT_FAILONUNMATCHEDPATTERN: "false"
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/github/workspace" \
+            -w /github/workspace \
+            -e INPUT_PATTERNS \
+            -e INPUT_PATH \
+            -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_COMMENTONUNMATCHEDPATTERN \
+            -e INPUT_COMMENT \
+            -e INPUT_USEWILDCARDPATTERNS \
+            -e INPUT_USEDEFAULTPATTERNS \
+            -e INPUT_BRANCH \
+            "$IMAGE"
+
+      - name: Test unmatched pattern fails when configured
+        env:
+          INPUT_PATTERNS: "never/.*"
+          INPUT_FAILONUNMATCHEDPATTERN: "true"
+        run: |
+          if docker run --rm \
+            -v "$GITHUB_WORKSPACE:/github/workspace" \
+            -w /github/workspace \
+            -e INPUT_PATTERNS \
+            -e INPUT_PATH \
+            -e INPUT_FAILONUNMATCHEDPATTERN \
+            -e INPUT_COMMENTONUNMATCHEDPATTERN \
+            -e INPUT_COMMENT \
+            -e INPUT_USEWILDCARDPATTERNS \
+            -e INPUT_USEDEFAULTPATTERNS \
+            -e INPUT_BRANCH \
+            "$IMAGE"; then
+            echo "::error::Expected the action to fail for an unmatched branch"
+            exit 1
+          fi

@@ -14,6 +14,10 @@
 >   no moving `v3` alias. The container image also publishes a mutable `latest`
 >   tag that tracks the most recent build, so it is not suitable for
 >   reproducible pins.
+> - **Behavior change:** unmatched branches no longer fail the workflow by
+>   default. Set `failOnUnmatchedPattern: true` to keep the v2 behavior.
+>   Optionally set `commentOnUnmatchedPattern: true` to post a configurable
+>   comment on the pull request.
 
 > **What's new in v2?**
 >
@@ -42,18 +46,71 @@ useful for enforcing branch naming conventions in your repositories.
 
 ## Inputs
 
-| Name                     | Description                                                                                    | Required | Default                  |
-| ------------------------ | ---------------------------------------------------------------------------------------------- | -------- | ------------------------ |
-| `patterns`               | The (regex or wildcard) patterns to match against the branch. Multiple patterns, one per line. | No       | ""                       |
-| `path`                   | Path or URL to a file containing patterns (one per line).                                      | No       | ""                       |
-| `useDefaultPatterns`     | Additionally use default patterns. See [DEFAULT_PATTERNS.md](./DEFAULT_PATTERNS.md).           | No       | false                    |
-| `failOnUnmatchedPattern` | Fail the action if the branch does not match any pattern.                                      | No       | true                     |
-| `useWildcardPatterns`    | Treat patterns as wildcards (e.g. `feature/*`) instead of regex.                               | No       | false                    |
-| `branch`                 | The branch to check.                                                                           | Yes      | `${{ github.head_ref }}` |
+| Name                        | Description                                                                                    | Required | Default                  |
+| --------------------------- | ---------------------------------------------------------------------------------------------- | -------- | ------------------------ |
+| `patterns`                  | The (regex or wildcard) patterns to match against the branch. Multiple patterns, one per line. | No       | ""                       |
+| `path`                      | Path or URL to a file containing patterns (one per line).                                      | No       | ""                       |
+| `useDefaultPatterns`        | Additionally use default patterns. See [DEFAULT_PATTERNS.md](./DEFAULT_PATTERNS.md).           | No       | false                    |
+| `failOnUnmatchedPattern`    | Fail the action if the branch does not match any pattern.                                      | No       | false                    |
+| `commentOnUnmatchedPattern` | Post or update a pull request comment if the branch does not match any pattern.                | No       | false                    |
+| `comment`                   | Comment template. Supports `{branch}` and `{patterns}`. Empty uses the default text.           | No       | ""                       |
+| `github-token`              | Token used to post the comment.                                                                | No       | `${{ github.token }}`    |
+| `useWildcardPatterns`       | Treat patterns as wildcards (e.g. `feature/*`) instead of regex.                               | No       | false                    |
+| `branch`                    | The branch to check.                                                                           | Yes      | `${{ github.head_ref }}` |
 
 **Note:** All specified pattern sources (`patterns`, `useDefaultPatterns`,
 `path`) are combined. The order is: `patterns`, then default patterns, then
 file/URL. You can use any combination of sources at the same time.
+
+### Unmatched branches
+
+By default, a branch that does not match any pattern does **not** fail the
+workflow. The action logs a warning and continues without posting a comment.
+Commenting is opt-in: set `commentOnUnmatchedPattern: true` to post or update a
+comment on the pull request.
+
+`failOnUnmatchedPattern` and `commentOnUnmatchedPattern` are independent:
+
+| `failOnUnmatchedPattern` | `commentOnUnmatchedPattern` | Result                                            |
+| ------------------------ | --------------------------- | ------------------------------------------------- |
+| `false` (default)        | `false` (default)           | Workflow succeeds with a warning.                 |
+| `false`                  | `true`                      | Comment is posted or updated; workflow succeeds.  |
+| `true`                   | `false`                     | Workflow fails.                                   |
+| `true`                   | `true`                      | Comment is posted or updated; workflow fails.     |
+
+To post comments, enable `commentOnUnmatchedPattern` and grant
+`pull-requests: write`. The `github-token` input defaults to
+`${{ github.token }}`, so no additional token configuration is required:
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: write
+
+steps:
+  - uses: michisec/branchMatchRegex@v3.0.0
+    with:
+      patterns: |
+        feature/.*
+        fix/.*
+      commentOnUnmatchedPattern: true
+```
+
+Comments are only posted for pull request events. If no pull request or token is
+available, the action logs a warning and continues; the comment failure does not
+change whether the workflow fails.
+
+The comment template supports `{branch}` and `{patterns}`:
+
+```yaml
+with:
+  comment: |
+    Branch `{branch}` does not match the allowed patterns: {patterns}
+```
+
+The default comment is:
+
+> Branch `{branch}` does not match any of the configured patterns.
 
 **Tip:** The `patterns` input supports both plain lists and YAML-style lists.
 For example, both of the following are valid:

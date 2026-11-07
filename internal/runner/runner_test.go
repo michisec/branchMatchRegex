@@ -2,6 +2,9 @@ package runner
 
 import (
 	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"slices"
@@ -20,12 +23,26 @@ func setInputs(t *testing.T, inputs map[string]string) {
 		"patterns",
 		"path",
 		"failOnUnmatchedPattern",
+		"commentOnUnmatchedPattern",
+		"comment",
+		"github-token",
 		"useWildcardPatterns",
 		"useDefaultPatterns",
 		"branch",
 	}
 	for _, name := range names {
 		t.Setenv("INPUT_"+strings.ToUpper(name), inputs[name])
+	}
+
+	for _, name := range []string{
+		"GH_TOKEN",
+		"GITHUB_API_URL",
+		"GITHUB_EVENT_PATH",
+		"GITHUB_REF",
+		"GITHUB_REPOSITORY",
+		"GITHUB_TOKEN",
+	} {
+		t.Setenv(name, "")
 	}
 	t.Setenv("GITHUB_ACTION_REF", "")
 }
@@ -56,12 +73,15 @@ func runWithRef(t *testing.T, ref string) string {
 
 func TestReadInputs(t *testing.T) {
 	setInputs(t, map[string]string{
-		"patterns":               "feature/.*",
-		"path":                   "patterns.yml",
-		"failOnUnmatchedPattern": "true",
-		"useWildcardPatterns":    "true",
-		"useDefaultPatterns":     "true",
-		"branch":                 "feature/test",
+		"patterns":                  "feature/.*",
+		"path":                      "patterns.yml",
+		"failOnUnmatchedPattern":    "true",
+		"commentOnUnmatchedPattern": "true",
+		"comment":                   "custom comment",
+		"github-token":              "token",
+		"useWildcardPatterns":       "true",
+		"useDefaultPatterns":        "true",
+		"branch":                    "feature/test",
 	})
 
 	got := ReadInputs(githubactions.New())
@@ -69,7 +89,10 @@ func TestReadInputs(t *testing.T) {
 		Patterns:            "feature/.*",
 		Path:                "patterns.yml",
 		Branch:              "feature/test",
+		Token:               "token",
 		FailOnUnmatched:     true,
+		CommentOnUnmatched:  true,
+		Comment:             "custom comment",
 		UseWildcardPatterns: true,
 		UseDefaultPatterns:  true,
 	}
@@ -187,17 +210,19 @@ func TestRun(t *testing.T) {
 		}
 	})
 
-	t.Run("does not fail when failOnUnmatchedPattern is false", func(t *testing.T) {
+	t.Run("does not fail or comment by default", func(t *testing.T) {
 		out, err := runAction(t, map[string]string{
-			"patterns":               "release/.*",
-			"failOnUnmatchedPattern": "false",
-			"branch":                 "feature/test",
+			"patterns": "release/.*",
+			"branch":   "feature/test",
 		}, nil)
 		if err != nil {
 			t.Fatalf("Run() returned unexpected error: %v", err)
 		}
 		if want := "::warning::Branch 'feature/test' does not match any patterns"; !strings.Contains(out, want) {
 			t.Errorf("output does not contain %q:\n%s", want, out)
+		}
+		if strings.Contains(out, "Could not post comment") {
+			t.Errorf("output unexpectedly contains a comment warning:\n%s", out)
 		}
 	})
 
@@ -292,6 +317,106 @@ func TestRun(t *testing.T) {
 		}
 		if want := "error parsing regexp"; !strings.Contains(err.Error(), want) {
 			t.Errorf("error does not contain %q: %v", want, err)
+		}
+	})
+
+	t.Run("posts a comment when the branch does not match", func(t *testing.T) {
+		var posted string
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.Method {
+			case http.MethodGet:
+				_, _ = w.Write([]byte("[]"))
+			case http.MethodPost:
+				var payload struct {
+					Body string `json:"body"`
+				}
+				if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+					t.Errorf("failed to decode request: %v", err)
+				}
+				posted = payload.Body
+				w.WriteHeader(http.StatusCreated)
+				_, _ = w.Write([]byte(`{"id":1}`))
+			default:
+				t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+				w.WriteHeader(http.StatusMethodNotAllowed)
+			}
+		}))
+		defer server.Close()
+
+		eventPath := filepath.Join(t.TempDir(), "event.json")
+		if err := os.WriteFile(eventPath, []byte(`{"pull_request":{"number":5}}`), 0o600); err != nil {
+			t.Fatalf("failed to write event: %v", err)
+		}
+
+		setInputs(t, map[string]string{
+			"patterns":                  "release/.*",
+			"failOnUnmatchedPattern":    "false",
+			"commentOnUnmatchedPattern": "true",
+			"comment":                   "Branch {branch} does not match: {patterns}",
+			"github-token":              "token",
+			"branch":                    "feature/test",
+		})
+		t.Setenv("GITHUB_REPOSITORY", "owner/repo")
+		t.Setenv("GITHUB_EVENT_PATH", eventPath)
+		t.Setenv("GITHUB_API_URL", server.URL)
+
+		var out bytes.Buffer
+		err := Run(githubactions.New(githubactions.WithWriter(&out)), nil)
+		if err != nil {
+			t.Fatalf("Run() returned unexpected error: %v", err)
+		}
+		if want := "Branch 'feature/test' does not match any patterns"; !strings.Contains(out.String(), want) {
+			t.Errorf("output does not contain %q:\n%s", want, out.String())
+		}
+		if want := "Branch feature/test does not match: `release/.*`"; !strings.Contains(posted, want) {
+			t.Errorf("comment does not contain %q:\n%s", want, posted)
+		}
+		if want := "<!-- branchMatchRegex:unmatched -->"; !strings.Contains(posted, want) {
+			t.Errorf("comment does not contain marker %q:\n%s", want, posted)
+		}
+	})
+
+	t.Run("warns when the comment cannot be posted", func(t *testing.T) {
+		out, err := runAction(t, map[string]string{
+			"patterns":                  "release/.*",
+			"failOnUnmatchedPattern":    "false",
+			"commentOnUnmatchedPattern": "true",
+			"branch":                    "feature/test",
+		}, nil)
+		if err != nil {
+			t.Fatalf("Run() returned unexpected error: %v", err)
+		}
+		if want := "Could not post comment on pull request: missing github token"; !strings.Contains(out, want) {
+			t.Errorf("output does not contain %q:\n%s", want, out)
+		}
+	})
+
+	t.Run("fails after posting a comment when configured", func(t *testing.T) {
+		out, err := runAction(t, map[string]string{
+			"patterns":                  "release/.*",
+			"failOnUnmatchedPattern":    "true",
+			"commentOnUnmatchedPattern": "true",
+			"branch":                    "feature/test",
+		}, nil)
+		if err == nil {
+			t.Fatal("expected an error, got nil")
+		}
+		if want := "Could not post comment on pull request"; !strings.Contains(out, want) {
+			t.Errorf("output does not contain %q:\n%s", want, out)
+		}
+	})
+
+	t.Run("does not post a comment when the branch matches", func(t *testing.T) {
+		out, err := runAction(t, map[string]string{
+			"patterns":                  "feature/.*",
+			"commentOnUnmatchedPattern": "true",
+			"branch":                    "feature/test",
+		}, nil)
+		if err != nil {
+			t.Fatalf("Run() returned unexpected error: %v", err)
+		}
+		if want := "Could not post comment"; strings.Contains(out, want) {
+			t.Errorf("output unexpectedly contains %q:\n%s", want, out)
 		}
 	})
 }

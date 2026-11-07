@@ -40,11 +40,11 @@ jobs:
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ghcr.io/michisec/branchmatchregex
-          # Release tags stay immutable: the exact version and the full commit
-          # SHA. "latest" points at the most recently built image.
+          # Version tags are immutable, so a release can always be pulled by
+          # its exact version. "latest" is mutable and tracks the most recent
+          # build.
           tags: |
             type=semver,pattern=v{{version}}
-            type=sha,format=long,prefix=sha-
             type=raw,value=latest
 
       - name: Build and push

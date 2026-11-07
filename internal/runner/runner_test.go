@@ -391,6 +391,38 @@ func TestRun(t *testing.T) {
 		}
 	})
 
+	t.Run("explains read-only tokens when the comment is forbidden", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusForbidden)
+			_, _ = w.Write([]byte(`{"message":"Resource not accessible by integration"}`))
+		}))
+		defer server.Close()
+
+		eventPath := filepath.Join(t.TempDir(), "event.json")
+		if err := os.WriteFile(eventPath, []byte(`{"pull_request":{"number":5}}`), 0o600); err != nil {
+			t.Fatalf("failed to write event: %v", err)
+		}
+
+		setInputs(t, map[string]string{
+			"patterns":                  "release/.*",
+			"commentOnUnmatchedPattern": "true",
+			"github-token":              "token",
+			"branch":                    "feature/test",
+		})
+		t.Setenv("GITHUB_REPOSITORY", "owner/repo")
+		t.Setenv("GITHUB_EVENT_PATH", eventPath)
+		t.Setenv("GITHUB_API_URL", server.URL)
+
+		var out bytes.Buffer
+		err := Run(githubactions.New(githubactions.WithWriter(&out)), nil)
+		if err != nil {
+			t.Fatalf("Run() returned unexpected error: %v", err)
+		}
+		if want := "read-only for pull requests from forks"; !strings.Contains(out.String(), want) {
+			t.Errorf("output does not contain %q:\n%s", want, out.String())
+		}
+	})
+
 	t.Run("fails after posting a comment when configured", func(t *testing.T) {
 		out, err := runAction(t, map[string]string{
 			"patterns":                  "release/.*",

@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -212,6 +213,46 @@ func TestUpsertPullRequestComment(t *testing.T) {
 		}
 	})
 
+	t.Run("searches all pages before creating a comment", func(t *testing.T) {
+		var updated bool
+		pages := 0
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.Method {
+			case http.MethodGet:
+				pages++
+				page, err := strconv.Atoi(r.URL.Query().Get("page"))
+				if err != nil {
+					t.Errorf("invalid page: %v", err)
+				}
+				if page < 11 {
+					comments := make([]comment, commentsPerPage)
+					for i := range comments {
+						comments[i] = comment{ID: int64(page*commentsPerPage + i + 1), Body: fmt.Sprintf("comment %d", i)}
+					}
+					_ = json.NewEncoder(w).Encode(comments)
+					return
+				}
+				_, _ = w.Write([]byte(`[{"id":999,"body":"<!-- branchMatchRegex:unmatched -->\nold"}]`))
+			case http.MethodPatch:
+				updated = true
+			default:
+				t.Errorf("unexpected method: %s", r.Method)
+			}
+		}))
+		defer server.Close()
+
+		client := &Client{HTTPClient: server.Client(), BaseURL: server.URL, Token: "token", Repository: "owner/repo"}
+		if err := client.UpsertPullRequestComment(context.Background(), 5, "new"); err != nil {
+			t.Fatalf("UpsertPullRequestComment() returned error: %v", err)
+		}
+		if !updated {
+			t.Error("expected the existing comment to be updated")
+		}
+		if pages != 11 {
+			t.Errorf("searched %d pages, want 11", pages)
+		}
+	})
+
 	t.Run("returns an API error", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusForbidden)
@@ -226,6 +267,9 @@ func TestUpsertPullRequestComment(t *testing.T) {
 		}
 		if want := "403"; !strings.Contains(err.Error(), want) {
 			t.Errorf("error does not contain %q: %v", want, err)
+		}
+		if !IsForbidden(err) {
+			t.Errorf("IsForbidden() = false, want true for %v", err)
 		}
 	})
 

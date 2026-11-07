@@ -14,7 +14,19 @@ inputs:
   failOnUnmatchedPattern:
     description: "Fail the action if the branch does not match the pattern"
     required: false
-    default: "true"
+    default: "false"
+  commentOnUnmatchedPattern:
+    description: "Post a comment on the pull request if the branch does not match the pattern"
+    required: false
+    default: "false"
+  comment:
+    description: "Comment template used when the branch does not match. Supports {branch} and {patterns}. Empty uses the default text."
+    required: false
+    default: ""
+  github-token:
+    description: "GitHub token used to post the comment"
+    required: false
+    default: ${{ github.token }}
   useWildcardPatterns:
     description: "Use wildcard patterns for branch matching instead of regex"
     required: false
@@ -31,7 +43,7 @@ inputs:
 runs:
   using: "docker"
   # Updated automatically by release.yml to the exact version being released.
-  image: "docker://ghcr.io/michisec/branchmatchregex:v3.0.0-rc1"
+  image: "docker://ghcr.io/michisec/branchmatchregex:v3.0.0-rc2"
 
 branding:
   icon: "check-circle"

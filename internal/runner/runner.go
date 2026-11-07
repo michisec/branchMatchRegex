@@ -7,6 +7,7 @@ import (
 
 	githubactions "github.com/sethvargo/go-githubactions"
 
+	"github.com/michisec/branchMatchRegex/internal/notify"
 	"github.com/michisec/branchMatchRegex/internal/patterns"
 )
 
@@ -14,7 +15,10 @@ type Inputs struct {
 	Patterns            string
 	Path                string
 	Branch              string
+	Token               string
 	FailOnUnmatched     bool
+	CommentOnUnmatched  bool
+	Comment             string
 	UseWildcardPatterns bool
 	UseDefaultPatterns  bool
 }
@@ -24,7 +28,10 @@ func ReadInputs(action *githubactions.Action) Inputs {
 		Patterns:            action.GetInput("patterns"),
 		Path:                action.GetInput("path"),
 		Branch:              action.GetInput("branch"),
+		Token:               action.GetInput("github-token"),
 		FailOnUnmatched:     action.GetInput("failOnUnmatchedPattern") == "true",
+		CommentOnUnmatched:  action.GetInput("commentOnUnmatchedPattern") == "true",
+		Comment:             action.GetInput("comment"),
 		UseWildcardPatterns: action.GetInput("useWildcardPatterns") == "true",
 		UseDefaultPatterns:  action.GetInput("useDefaultPatterns") == "true",
 	}
@@ -53,6 +60,12 @@ func Run(action *githubactions.Action, defaultPatterns []byte) error {
 		if matched {
 			action.Infof("Branch '%s' matches pattern: %s", inputs.Branch, pattern)
 			return nil
+		}
+	}
+
+	if inputs.CommentOnUnmatched {
+		if err := notify.PostUnmatched(inputs.Token, inputs.Branch, allPatterns, inputs.Comment); err != nil {
+			action.Warningf("Could not post comment on pull request: %s", err)
 		}
 	}
 
@@ -110,6 +123,8 @@ func logInputs(action *githubactions.Action, inputs Inputs) {
 	action.Debugf("Patterns: %s", inputs.Patterns)
 	action.Debugf("Path: %s", inputs.Path)
 	action.Debugf("Fail on unmatched pattern: %t", inputs.FailOnUnmatched)
+	action.Debugf("Comment on unmatched pattern: %t", inputs.CommentOnUnmatched)
+	action.Debugf("Comment template: %s", inputs.Comment)
 	action.Debugf("Use wildcard patterns: %t", inputs.UseWildcardPatterns)
 	action.Debugf("Use default patterns: %t", inputs.UseDefaultPatterns)
 	action.Debugf("Branch: %s", inputs.Branch)

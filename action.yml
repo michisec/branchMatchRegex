@@ -43,7 +43,7 @@ inputs:
 runs:
   using: "docker"
   # Updated automatically by release.yml to the exact version being released.
-  image: "docker://ghcr.io/michisec/branchmatchregex:v3.0.0-rc3"
+  image: "docker://ghcr.io/michisec/branchmatchregex:3.0.0-rc3"
 
 branding:
   icon: "check-circle"

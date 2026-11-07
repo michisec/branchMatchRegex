@@ -42,9 +42,9 @@ jobs:
           images: ghcr.io/michisec/branchmatchregex
           # Version tags are immutable, so a release can always be pulled by
           # its exact version. "latest" is mutable and tracks the most recent
-          # build.
+          # build. Image tags omit the "v" prefix to match action.yml.
           tags: |
-            type=semver,pattern=v{{version}}
+            type=semver,pattern={{version}}
             type=raw,value=latest
 
       - name: Build and push

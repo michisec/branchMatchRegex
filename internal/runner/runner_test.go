@@ -100,6 +100,20 @@ func TestReadInputs(t *testing.T) {
 	if got != want {
 		t.Errorf("ReadInputs() = %+v, want %+v", got, want)
 	}
+
+	t.Run("comments by default", func(t *testing.T) {
+		setInputs(t, map[string]string{})
+		if got := ReadInputs(githubactions.New()); !got.CommentOnUnmatched {
+			t.Error("CommentOnUnmatched = false, want true by default")
+		}
+	})
+
+	t.Run("disables comments when set to false", func(t *testing.T) {
+		setInputs(t, map[string]string{"commentOnUnmatchedPattern": "false"})
+		if got := ReadInputs(githubactions.New()); got.CommentOnUnmatched {
+			t.Error("CommentOnUnmatched = true, want false")
+		}
+	})
 }
 
 func TestCollect(t *testing.T) {
@@ -210,7 +224,7 @@ func TestRun(t *testing.T) {
 		}
 	})
 
-	t.Run("does not fail or comment by default", func(t *testing.T) {
+	t.Run("comments by default without failing", func(t *testing.T) {
 		out, err := runAction(t, map[string]string{
 			"patterns": "release/.*",
 			"branch":   "feature/test",
@@ -220,6 +234,20 @@ func TestRun(t *testing.T) {
 		}
 		if want := "::warning::Branch 'feature/test' does not match any patterns"; !strings.Contains(out, want) {
 			t.Errorf("output does not contain %q:\n%s", want, out)
+		}
+		if want := "Could not post comment on pull request: missing github token"; !strings.Contains(out, want) {
+			t.Errorf("output does not contain %q:\n%s", want, out)
+		}
+	})
+
+	t.Run("does not comment when disabled", func(t *testing.T) {
+		out, err := runAction(t, map[string]string{
+			"patterns":                  "release/.*",
+			"commentOnUnmatchedPattern": "false",
+			"branch":                    "feature/test",
+		}, nil)
+		if err != nil {
+			t.Fatalf("Run() returned unexpected error: %v", err)
 		}
 		if strings.Contains(out, "Could not post comment") {
 			t.Errorf("output unexpectedly contains a comment warning:\n%s", out)

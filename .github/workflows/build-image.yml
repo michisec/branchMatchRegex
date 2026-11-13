@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+  release:
+    types: [published]
   workflow_dispatch:
   workflow_call:
     inputs:
@@ -28,6 +30,15 @@ jobs:
       digest: ${{ steps.build.outputs.digest }}
 
     steps:
+      - name: Resolve version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version="${INPUT_VERSION:-${RELEASE_TAG#v}}"
+          echo "value=${version}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -40,6 +51,18 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if the image already exists
+        id: exists
+        if: github.event_name == 'release'
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          if docker pull "ghcr.io/michisec/branchmatchregex:${VERSION}" >/dev/null; then
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Extract image metadata
         id: meta
@@ -56,6 +79,7 @@ jobs:
 
       - name: Build and push
         id: build
+        if: steps.exists.outputs.value != 'true'
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .

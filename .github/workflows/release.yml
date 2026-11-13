@@ -9,11 +9,11 @@ on:
         required: true
 
 jobs:
-  release:
-    name: Create Release
+  validate:
+    name: Validate and test
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     env:
       VERSION: ${{ github.event.inputs.version }}
 
@@ -25,28 +25,8 @@ jobs:
             exit 1
           fi
 
-      - name: Check if secrets are available
-        id: check-secrets
-        run: |
-          echo "secrets_available=${{
-            vars.BOT_APP_ID &&
-            secrets.BOT_APP_PRIVATE_KEY &&
-            'true' || ''
-          }}" >> "$GITHUB_OUTPUT"
-
-      - name: Create GitHub App token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
-        if: ${{ steps.check-secrets.outputs.secrets_available }}
-        id: app-token
-        with:
-          app-id: ${{ vars.BOT_APP_ID }}
-          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
-
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          token: ${{ steps.app-token.outputs.token || github.token }}
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -78,11 +58,65 @@ jobs:
       - name: Build
         run: go build -o branchmatchregex .
 
-      - name: Point action at the exact release image
+  image:
+    name: Build release image
+    needs: validate
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-image.yml
+    with:
+      version: ${{ github.event.inputs.version }}
+
+  release:
+    name: Create Release
+    needs:
+      - validate
+      - image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ github.event.inputs.version }}
+
+    steps:
+      - name: Check if secrets are available
+        id: check-secrets
         run: |
-          sed -i -E "s#^  image: .*#  image: \"docker://ghcr.io/michisec/branchmatchregex:${VERSION}\"#" action.yml
+          echo "secrets_available=${{
+            vars.BOT_APP_ID &&
+            secrets.BOT_APP_PRIVATE_KEY &&
+            'true' || ''
+          }}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub App token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        if: ${{ steps.check-secrets.outputs.secrets_available }}
+        id: app-token
+        with:
+          app-id: ${{ vars.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token || github.token }}
+
+      - name: Point action at the exact release image
+        id: pin
+        env:
+          DIGEST: ${{ needs.image.outputs.digest }}
+        run: |
+          if [ -z "$DIGEST" ]; then
+            echo "::error::The image build did not return a digest."
+            exit 1
+          fi
+
+          sed -i -E "s#^  image: .*#  image: \"docker://ghcr.io/michisec/branchmatchregex:${VERSION}@${DIGEST}\"#" action.yml
 
           if git diff --quiet -- action.yml; then
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -91,11 +125,13 @@ jobs:
           git add action.yml
           git commit -m "ci: use v${VERSION} action image"
           git push origin "HEAD:${GITHUB_REF_NAME}"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           tag_name: "v${{ env.VERSION }}"
+          target_commitish: ${{ steps.pin.outputs.sha }}
           name: "🔖 branchMatchRegex ${{ env.VERSION }}"
           draft: true
           prerelease: false

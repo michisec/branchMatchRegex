@@ -3,5 +3,12 @@
   "extends": [
     "github>RubberDuckCrew/.github//configs/renovate/renovate-rubberduckcrew.json#v3.1.0"
   ],
-  "reviewers": ["michisec"]
+  "reviewers": ["michisec"],
+  "packageRules": [
+    {
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/michisec/branchmatchregex"],
+      "pinDigests": false
+    }
+  ]
 }

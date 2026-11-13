@@ -5,10 +5,18 @@ on:
     branches:
       - main
   release:
-    # Draft releases do not trigger the "created" activity type, so build the
-    # versioned image when the release is published.
     types: [published]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      version:
+        description: "Release version to tag the image with (e.g. 3.1.0)."
+        required: true
+        type: string
+    outputs:
+      digest:
+        description: "Digest of the pushed image."
+        value: ${{ jobs.build.outputs.digest }}
 
 permissions:
   contents: read
@@ -18,12 +26,21 @@ jobs:
   build:
     name: Build and push image
     runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
 
     steps:
+      - name: Resolve version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version="${INPUT_VERSION:-${RELEASE_TAG#v}}"
+          echo "value=${version}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.release.tag_name || github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -35,6 +52,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check if the image already exists
+        id: exists
+        if: github.event_name == 'release'
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          if docker pull "ghcr.io/michisec/branchmatchregex:${VERSION}" >/dev/null; then
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Extract image metadata
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
@@ -45,9 +74,12 @@ jobs:
           # build. Image tags omit the "v" prefix to match action.yml.
           tags: |
             type=semver,pattern={{version}}
+            type=raw,value=${{ inputs.version }},enable=${{ inputs.version != '' }}
             type=raw,value=latest
 
       - name: Build and push
+        id: build
+        if: steps.exists.outputs.value != 'true'
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
